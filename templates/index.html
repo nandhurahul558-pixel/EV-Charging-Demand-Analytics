@@ -1,0 +1,1490 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>
+        EV Charging Demand Analytics
+    </title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+
+<!-- ===================================================== -->
+<!-- HEADER -->
+<!-- ===================================================== -->
+
+<header class="hero">
+
+    <div class="container hero-content">
+
+        <div>
+
+            <div class="eyebrow">
+                MACHINE LEARNING APPLICATION
+            </div>
+
+            <h1>
+                EV Charging Demand
+                <span>Analytics</span>
+            </h1>
+
+            <p>
+                Predict hourly electricity demand,
+                identify peak charging periods and
+                support charger capacity planning.
+            </p>
+
+        </div>
+
+
+        <div class="model-badge">
+
+            <span class="status-dot"></span>
+
+            Gradient Boosting
+
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- ===================================================== -->
+<!-- MAIN -->
+<!-- ===================================================== -->
+
+<main class="container">
+
+
+<!-- ===================================================== -->
+<!-- SUMMARY CARDS -->
+<!-- ===================================================== -->
+
+<section class="summary-grid">
+
+
+    <div class="summary-card">
+
+        <div class="summary-label">
+            DATASET RECORDS
+        </div>
+
+        <div class="summary-value">
+            {{ "{:,}".format(analytics.total_records) }}
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="summary-label">
+            STATIONS
+        </div>
+
+        <div class="summary-value">
+            {{ analytics.station_count }}
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="summary-label">
+            AVERAGE DEMAND
+        </div>
+
+        <div class="summary-value">
+
+            {{ analytics.average_demand }}
+
+            <small>kWh</small>
+
+        </div>
+
+    </div>
+
+
+    <div class="summary-card">
+
+        <div class="summary-label">
+            MAX DEMAND
+        </div>
+
+        <div class="summary-value">
+
+            {{ analytics.max_demand }}
+
+            <small>kWh</small>
+
+        </div>
+
+    </div>
+
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- PREDICTION AREA -->
+<!-- ===================================================== -->
+
+<section class="prediction-layout">
+
+
+<!-- ===================================================== -->
+<!-- FORM -->
+<!-- ===================================================== -->
+
+<div class="card form-card">
+
+
+    <div class="section-header">
+
+        <div>
+
+            <div class="eyebrow dark">
+                DEMAND PREDICTION
+            </div>
+
+            <h2>
+                Enter Station Conditions
+            </h2>
+
+        </div>
+
+        <div class="section-number">
+            01
+        </div>
+
+    </div>
+
+
+    <form
+        action="/predict"
+        method="POST"
+    >
+
+
+    <!-- ================================================= -->
+    <!-- STATION -->
+    <!-- ================================================= -->
+
+    <div class="form-section">
+
+        <h3>
+            Station Information
+        </h3>
+
+
+        <div class="station-row">
+
+
+            <div class="form-group">
+
+                <label>
+                    Charging Station
+                </label>
+
+                <select
+                    name="station_id"
+                    id="station_id"
+                    required
+                >
+
+                    {% for station_id, station in stations.items() %}
+
+                    <option
+                        value="{{ station_id }}"
+                        {% if selected_station == station_id %}
+                        selected
+                        {% endif %}
+                    >
+
+                        {{ station_id }}
+                        — {{ station.location }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+            <div class="station-info-box">
+
+                <div>
+
+                    <span>
+                        LOCATION
+                    </span>
+
+                    <strong id="location-display">
+                        Kochi
+                    </strong>
+
+                </div>
+
+
+                <div>
+
+                    <span>
+                        CHARGERS
+                    </span>
+
+                    <strong id="charger-display">
+                        8
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- DATE & TIME -->
+    <!-- ================================================= -->
+
+    <div class="form-section">
+
+        <h3>
+            Date & Time
+        </h3>
+
+
+        <div class="two-column">
+
+
+            <div class="form-group">
+
+                <label>
+                    Date
+                </label>
+
+                <input
+                    type="date"
+                    name="date"
+                    id="date"
+                    value="{{ selected_date or '2026-06-15' }}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Hour
+                </label>
+
+                <select
+                    name="hour"
+                    id="hour"
+                    required
+                >
+
+                    {% for h in range(24) %}
+
+                    <option
+                        value="{{ h }}"
+                        {% if selected_hour == h %}
+                        selected
+                        {% endif %}
+                    >
+
+                        {{ "%02d:00"|format(h) }}
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="two-column">
+
+
+            <div class="form-group">
+
+                <label>
+                    Weekend
+                </label>
+
+                <input
+                    type="text"
+                    id="weekend-display"
+                    value="No"
+                    readonly
+                    class="readonly-input"
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Holiday
+                </label>
+
+                <select
+                    name="is_holiday"
+                    id="is_holiday"
+                >
+
+                    <option
+                        value="0"
+                        {% if selected_holiday == 0 %}
+                        selected
+                        {% endif %}
+                    >
+                        No
+                    </option>
+
+                    <option
+                        value="1"
+                        {% if selected_holiday == 1 %}
+                        selected
+                        {% endif %}
+                    >
+                        Yes
+                    </option>
+
+                </select>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- WEATHER -->
+    <!-- ================================================= -->
+
+    <div class="form-section">
+
+        <h3>
+            Weather Conditions
+        </h3>
+
+
+        <div class="three-column">
+
+
+            <div class="form-group">
+
+                <label>
+                    Temperature
+                </label>
+
+                <div class="input-unit">
+
+                    <input
+                        type="number"
+                        step="0.1"
+                        name="temperature"
+                        value="{{ selected_temperature or 28.0 }}"
+                        required
+                    >
+
+                    <span>
+                        °C
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Humidity
+                </label>
+
+                <div class="input-unit">
+
+                    <input
+                        type="number"
+                        step="0.1"
+                        name="humidity"
+                        value="{{ selected_humidity or 70.0 }}"
+                        required
+                    >
+
+                    <span>
+                        %
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Rainfall
+                </label>
+
+                <div class="input-unit">
+
+                    <input
+                        type="number"
+                        step="0.1"
+                        name="rainfall"
+                        value="{{ selected_rainfall or 0.0 }}"
+                        required
+                    >
+
+                    <span>
+                        mm
+                    </span>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- AUTOMATIC HISTORICAL FEATURES -->
+    <!-- ================================================= -->
+
+    <div class="form-section">
+
+
+        <div class="historical-heading">
+
+            <div>
+
+                <h3>
+                    Historical Demand
+                </h3>
+
+                <p>
+                    These features are automatically retrieved
+                    from historical station data.
+                </p>
+
+            </div>
+
+
+            <div
+                id="history-status"
+                class="history-status"
+            >
+                Loading...
+            </div>
+
+        </div>
+
+
+        <div class="history-grid">
+
+
+            <div class="history-card">
+
+                <span>
+                    PREVIOUS HOUR
+                </span>
+
+                <strong id="previous-hour">
+                    --
+                </strong>
+
+                <small>
+                    kWh
+                </small>
+
+            </div>
+
+
+            <div class="history-card">
+
+                <span>
+                    PREVIOUS DAY
+                </span>
+
+                <strong id="previous-day">
+                    --
+                </strong>
+
+                <small>
+                    kWh
+                </small>
+
+            </div>
+
+
+            <div class="history-card">
+
+                <span>
+                    PREVIOUS WEEK
+                </span>
+
+                <strong id="previous-week">
+                    --
+                </strong>
+
+                <small>
+                    kWh
+                </small>
+
+            </div>
+
+
+            <div class="history-card">
+
+                <span>
+                    24-HOUR ROLLING MEAN
+                </span>
+
+                <strong id="rolling-24">
+                    --
+                </strong>
+
+                <small>
+                    kWh
+                </small>
+
+            </div>
+
+
+            <div class="history-card">
+
+                <span>
+                    7-DAY ROLLING MEAN
+                </span>
+
+                <strong id="rolling-7">
+                    --
+                </strong>
+
+                <small>
+                    kWh
+                </small>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="automatic-note">
+
+            <strong>
+                Automatic feature engineering
+            </strong>
+
+            Historical demand features are generated automatically
+            based on the selected station, date and hour.
+
+        </div>
+
+
+    </div>
+
+
+    <!-- ================================================= -->
+    <!-- BUTTON -->
+    <!-- ================================================= -->
+
+    <button
+        type="submit"
+        class="predict-button"
+    >
+
+        Predict Demand & Analyze Capacity
+
+        <span>
+            →
+        </span>
+
+    </button>
+
+
+    </form>
+
+</div>
+
+
+<!-- ===================================================== -->
+<!-- RIGHT SIDE -->
+<!-- ===================================================== -->
+
+<div class="right-column">
+
+
+    {% if prediction is not none %}
+
+    <!-- ================================================= -->
+    <!-- PREDICTION RESULT -->
+    <!-- ================================================= -->
+
+    <div class="card result-card">
+
+        <div class="eyebrow dark">
+            ML PREDICTION
+        </div>
+
+        <h2>
+            Estimated Demand
+        </h2>
+
+
+        <div class="prediction-number">
+
+            {{ prediction }}
+
+            <span>
+                kWh
+            </span>
+
+        </div>
+
+
+        <div class="demand-badge">
+
+            <span>
+                ●
+            </span>
+
+            {{ demand_class }}
+
+        </div>
+
+
+        <p class="result-description">
+
+            Demand is expected to be
+            {{ demand_class|lower }}.
+
+        </p>
+
+    </div>
+
+
+    {% else %}
+
+
+    <!-- ================================================= -->
+    <!-- EMPTY RESULT -->
+    <!-- ================================================= -->
+
+    <div class="card result-card empty-result">
+
+        <div class="eyebrow dark">
+            ML PREDICTION
+        </div>
+
+        <h2>
+            Estimated Demand
+        </h2>
+
+        <div class="empty-icon">
+            ML
+        </div>
+
+        <p>
+            Enter station conditions and run the model
+            to generate an hourly demand prediction.
+        </p>
+
+    </div>
+
+
+    {% endif %}
+
+
+    <!-- ================================================= -->
+    <!-- MODEL PERFORMANCE -->
+    <!-- ================================================= -->
+
+    <div class="card performance-card">
+
+        <div class="eyebrow dark">
+            MODEL PERFORMANCE
+        </div>
+
+        <h2>
+            Gradient Boosting Regressor
+        </h2>
+
+
+        <div class="metric-row">
+
+            <span>
+                Test MAE
+            </span>
+
+            <strong>
+                34.04 kWh
+            </strong>
+
+        </div>
+
+
+        <div class="metric-row">
+
+            <span>
+                Test RMSE
+            </span>
+
+            <strong>
+                47.53 kWh
+            </strong>
+
+        </div>
+
+
+        <div class="metric-row">
+
+            <span>
+                Test R²
+            </span>
+
+            <strong>
+                0.491
+            </strong>
+
+        </div>
+
+
+        <div class="metric-row">
+
+            <span>
+                Training Samples
+            </span>
+
+            <strong>
+                139,008
+            </strong>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- ERROR -->
+<!-- ===================================================== -->
+
+{% if error %}
+
+<section class="card error-card">
+
+    <strong>
+        Prediction Error
+    </strong>
+
+    <p>
+        {{ error }}
+    </p>
+
+</section>
+
+{% endif %}
+
+
+<!-- ===================================================== -->
+<!-- CAPACITY PLANNING -->
+<!-- ===================================================== -->
+
+{% if capacity %}
+
+<section class="card large-section">
+
+
+    <div class="eyebrow dark">
+        CAPACITY PLANNING
+    </div>
+
+
+    <h2>
+        Charger Capacity Recommendation
+    </h2>
+
+
+    <p class="section-description">
+        A planning estimate based on predicted demand,
+        charger capacity and target utilization.
+    </p>
+
+
+    <div class="capacity-grid">
+
+
+        <div class="capacity-card">
+
+            <span>
+                RECOMMENDED CHARGERS
+            </span>
+
+            <strong>
+                {{ capacity.required_chargers }}
+            </strong>
+
+            <small>
+                chargers
+            </small>
+
+        </div>
+
+
+        <div class="capacity-card">
+
+            <span>
+                CURRENT CHARGERS
+            </span>
+
+            <strong>
+                {{ capacity.current_chargers }}
+            </strong>
+
+            <small>
+                chargers
+            </small>
+
+        </div>
+
+
+        <div class="capacity-card">
+
+            <span>
+                ESTIMATED UTILIZATION
+            </span>
+
+            <strong>
+                {{ capacity.estimated_utilization }}%
+            </strong>
+
+            <small>
+                current capacity
+            </small>
+
+        </div>
+
+
+        <div class="capacity-card">
+
+            <span>
+                CURRENT USABLE CAPACITY
+            </span>
+
+            <strong>
+                {{ capacity.current_capacity }}
+            </strong>
+
+            <small>
+                kWh / hour
+            </small>
+
+        </div>
+
+
+    </div>
+
+
+    <div class="capacity-status">
+
+        <div class="status-title">
+
+            <span>
+                ●
+            </span>
+
+            {{ capacity.status }}
+
+        </div>
+
+        <p>
+            {{ capacity.message }}
+        </p>
+
+    </div>
+
+
+    {% if capacity.additional_chargers > 0 %}
+
+    <div class="recommendation-box">
+
+        <h3>
+            Expansion Recommendation
+        </h3>
+
+        <p>
+
+            Consider planning for approximately
+
+            <strong>
+                {{ capacity.additional_chargers }}
+            </strong>
+
+            additional charger(s) under the
+            current planning assumptions.
+
+        </p>
+
+    </div>
+
+    {% endif %}
+
+
+    <div class="planning-note">
+
+        <strong>
+            Planning assumptions:
+        </strong>
+
+        20.0 kWh per charger-hour and
+        80.0% target utilization.
+
+        This is a capacity-planning calculation,
+        not a separate ML prediction.
+
+    </div>
+
+
+</section>
+
+{% endif %}
+
+
+<!-- ===================================================== -->
+<!-- PEAK HOURS -->
+<!-- ===================================================== -->
+
+<section class="card large-section">
+
+
+    <div class="eyebrow dark">
+        DEMAND ANALYTICS
+    </div>
+
+
+    <h2>
+        Peak Charging Hours
+    </h2>
+
+
+    <p class="section-description">
+        Historical average demand across all charging stations.
+    </p>
+
+
+    <div class="peak-grid">
+
+
+        {% for peak in analytics.peak_hours %}
+
+        <div class="peak-card">
+
+            <span>
+                #{{ loop.index }}
+            </span>
+
+            <strong>
+                {{ peak.hour }}
+            </strong>
+
+            <small>
+                {{ peak.demand }} kWh
+            </small>
+
+        </div>
+
+        {% endfor %}
+
+
+    </div>
+
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- STATION COMPARISON -->
+<!-- ===================================================== -->
+
+<section class="card large-section">
+
+
+    <div class="eyebrow dark">
+        STATION ANALYTICS
+    </div>
+
+
+    <h2>
+        Average Demand by Station
+    </h2>
+
+
+    <p class="section-description">
+        Compare average energy consumption across
+        charging stations.
+    </p>
+
+
+    <div class="table-wrapper">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        RANK
+                    </th>
+
+                    <th>
+                        STATION
+                    </th>
+
+                    <th>
+                        LOCATION
+                    </th>
+
+                    <th>
+                        CHARGERS
+                    </th>
+
+                    <th>
+                        AVERAGE DEMAND
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+                {% for station in analytics.station_comparison %}
+
+                <tr>
+
+                    <td>
+
+                        <span class="rank-badge">
+                            {{ station.rank }}
+                        </span>
+
+                    </td>
+
+                    <td>
+                        <strong>
+                            {{ station.station_id }}
+                        </strong>
+                    </td>
+
+                    <td>
+                        {{ station.location }}
+                    </td>
+
+                    <td>
+                        {{ station.chargers }}
+                    </td>
+
+                    <td class="demand-value">
+                        {{ station.average_demand }} kWh
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- PROJECT INFORMATION -->
+<!-- ===================================================== -->
+
+<section class="project-info">
+
+
+    <div>
+
+        <div class="eyebrow">
+            PROJECT INFORMATION
+        </div>
+
+        <h2>
+            EV Charging Demand & Capacity Analytics
+        </h2>
+
+        <p>
+            Traditional machine learning system for
+            hourly EV charging demand prediction,
+            demand analytics and charger capacity planning.
+        </p>
+
+    </div>
+
+
+    <div class="tech-tags">
+
+        <span>
+            Python
+        </span>
+
+        <span>
+            Pandas
+        </span>
+
+        <span>
+            Scikit-learn
+        </span>
+
+        <span>
+            Gradient Boosting
+        </span>
+
+        <span>
+            Flask
+        </span>
+
+        <span>
+            Machine Learning
+        </span>
+
+    </div>
+
+
+</section>
+
+
+</main>
+
+
+<!-- ===================================================== -->
+<!-- JAVASCRIPT -->
+<!-- ===================================================== -->
+
+<script>
+
+const stations = {{ stations | tojson }};
+
+const stationSelect =
+    document.getElementById("station_id");
+
+const locationDisplay =
+    document.getElementById("location-display");
+
+const chargerDisplay =
+    document.getElementById("charger-display");
+
+const dateInput =
+    document.getElementById("date");
+
+const hourInput =
+    document.getElementById("hour");
+
+const weekendDisplay =
+    document.getElementById("weekend-display");
+
+
+const historyStatus =
+    document.getElementById("history-status");
+
+const previousHour =
+    document.getElementById("previous-hour");
+
+const previousDay =
+    document.getElementById("previous-day");
+
+const previousWeek =
+    document.getElementById("previous-week");
+
+const rolling24 =
+    document.getElementById("rolling-24");
+
+const rolling7 =
+    document.getElementById("rolling-7");
+
+
+// ========================================================
+// UPDATE STATION INFORMATION
+// ========================================================
+
+function updateStationInfo() {
+
+    const stationId =
+        stationSelect.value;
+
+    const station =
+        stations[stationId];
+
+    if (!station) {
+        return;
+    }
+
+    locationDisplay.textContent =
+        station.location;
+
+    chargerDisplay.textContent =
+        station.chargers;
+
+}
+
+
+// ========================================================
+// UPDATE WEEKEND
+// ========================================================
+
+function updateWeekend() {
+
+    if (!dateInput.value) {
+        return;
+    }
+
+    const date =
+        new Date(
+            dateInput.value + "T00:00:00"
+        );
+
+    const day =
+        date.getDay();
+
+    if (day === 0 || day === 6) {
+
+        weekendDisplay.value =
+            "Yes";
+
+    } else {
+
+        weekendDisplay.value =
+            "No";
+
+    }
+
+}
+
+
+// ========================================================
+// LOAD HISTORICAL FEATURES
+// ========================================================
+
+async function loadHistoricalFeatures() {
+
+    const stationId =
+        stationSelect.value;
+
+    const date =
+        dateInput.value;
+
+    const hour =
+        hourInput.value;
+
+
+    if (!stationId || !date) {
+        return;
+    }
+
+
+    historyStatus.textContent =
+        "Loading...";
+
+
+    historyStatus.className =
+        "history-status loading";
+
+
+    try {
+
+        const response =
+            await fetch(
+                `/historical-features?station_id=${stationId}&date=${date}&hour=${hour}`
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.error ||
+                "Unable to load historical features."
+            );
+
+        }
+
+
+        previousHour.textContent =
+            Number(
+                data.previous_hour_demand
+            ).toFixed(2);
+
+
+        previousDay.textContent =
+            Number(
+                data.previous_day_demand
+            ).toFixed(2);
+
+
+        previousWeek.textContent =
+            Number(
+                data.previous_week_demand
+            ).toFixed(2);
+
+
+        rolling24.textContent =
+            Number(
+                data.rolling_24h_mean
+            ).toFixed(2);
+
+
+        rolling7.textContent =
+            Number(
+                data.rolling_7d_mean
+            ).toFixed(2);
+
+
+        historyStatus.textContent =
+            data.source;
+
+
+        historyStatus.className =
+            "history-status success";
+
+
+    } catch (error) {
+
+        console.error(error);
+
+
+        historyStatus.textContent =
+            "Unable to load";
+
+
+        historyStatus.className =
+            "history-status error";
+
+
+        previousHour.textContent =
+            "--";
+
+        previousDay.textContent =
+            "--";
+
+        previousWeek.textContent =
+            "--";
+
+        rolling24.textContent =
+            "--";
+
+        rolling7.textContent =
+            "--";
+
+    }
+
+}
+
+
+// ========================================================
+// EVENTS
+// ========================================================
+
+stationSelect.addEventListener(
+    "change",
+    function() {
+
+        updateStationInfo();
+
+        loadHistoricalFeatures();
+
+    }
+);
+
+
+dateInput.addEventListener(
+    "change",
+    function() {
+
+        updateWeekend();
+
+        loadHistoricalFeatures();
+
+    }
+);
+
+
+hourInput.addEventListener(
+    "change",
+    function() {
+
+        loadHistoricalFeatures();
+
+    }
+);
+
+
+// ========================================================
+// INITIAL LOAD
+// ========================================================
+
+updateStationInfo();
+
+updateWeekend();
+
+loadHistoricalFeatures();
+
+</script>
+
+
+</body>
+
+</html>
