@@ -14,6 +14,25 @@ Electric vehicle charging stations experience different demand patterns dependin
 
 This project develops a Machine Learning system that predicts hourly energy demand and provides analytics for EV charging infrastructure planning.
 
+
+## Application Screenshots
+
+### Dashboard Overview
+
+![Dashboard Overview](screenshots/dashboard1.png)
+
+### Demand Prediction & Historical Features
+
+![Demand Prediction](screenshots/dashboard2.png)
+
+### Charger Capacity Planning
+
+![Capacity Planning](screenshots/dashboard3.png)
+
+### Station Analytics
+
+![Station Analytics](screenshots/dashboard4.png)
+
 ## Key Features
 
 - Hourly EV charging demand prediction
